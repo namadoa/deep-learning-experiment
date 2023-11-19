@@ -212,8 +212,8 @@ class Learner(BaseLearner):
             )
 
             # Calculate predictions from the model
-            y_pred_proba_train_fold = model.predict(X_train_fold_augmented)
-            y_pred_proba_val_fold = model.predict(X_val_fold)
+            y_pred_proba_train_fold = model.predict(X_train_fold_augmented).flatten()
+            y_pred_proba_val_fold = model.predict(X_val_fold).flatten()
 
             # Calculate metrics for the current fold
             fold_metrics_dict['roc_auc_train'].append(roc_auc_score(y_train_fold, model.predict(X_train_fold)))
@@ -246,8 +246,8 @@ class Learner(BaseLearner):
         )
 
         # Calculate predictions from the model
-        y_pred_proba_train = model.predict(self.X_train)
-        y_pred_proba_test = model.predict(self.X_test)
+        y_pred_proba_train = model.predict(self.X_train).flatten()
+        y_pred_proba_test = model.predict(self.X_test).flatten()
          
         # Obtain the history losses (val/train) over the compilation
         training_metrics = {

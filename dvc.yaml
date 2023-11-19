@@ -1,0 +1,33 @@
+stages:
+  preprocessing:
+    cmd: python stages/staging.py
+    params:
+      - data
+      - staging
+    deps:
+      - ${data.syndrome_data.dataset}
+      - ${data.non_syndrome_data.dataset}
+    outs:
+      - ${staging.syndrome_data.dataset}
+      - ${staging.non_syndrome_data.dataset} 
+
+  splitting_data:
+    cmd: python stages/splitting_data.py
+    params:
+      - staging
+      - splitting_data
+    deps:
+      - ${staging.syndrome_data.dataset}
+      - ${staging.non_syndrome_data.dataset}
+    outs:
+      - ${splitting_data.training_data.dataset}
+      - ${splitting_data.testing_data.dataset}
+
+  training:
+    cmd: python stages/experimentation.py
+    params:
+      - splitting_data
+      - modelling
+    deps:
+      - ${splitting_data.training_data.dataset}
+      - ${splitting_data.testing_data.dataset}

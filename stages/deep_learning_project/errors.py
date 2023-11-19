@@ -1,0 +1,2 @@
+class ResizeImageError(Exception):
+    pass

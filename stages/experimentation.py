@@ -2,6 +2,7 @@ import hydra
 from hydra.core.config_store import ConfigStore
 from deep_learning_project.config import Config
 from deep_learning_project.model.trainer import Learner
+from deep_learning_project.utils.h5_data_utils import load_data_from_h5
 
 cs = ConfigStore.instance()
 cs.store(name="config", node=Config)

@@ -2,17 +2,20 @@
 FROM python:3.9-slim-buster
 
 # Copy the current directory contents into the container at /usr/src/app
-COPY . /modelling
+COPY . /workspaces/modelling
 
 # Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r /modelling/requirements.txt
+RUN pip install --no-cache-dir -r /workspaces/modelling/requirements.txt
 
 # Set environment variables
 ARG WANDB_API_KEY
 ENV WANDB_API_KEY=${WANDB_API_KEY}
 
 # Set the working directory in the container
-WORKDIR /modelling
+WORKDIR /workspaces/modelling
 
-# Run app.py when the container launches
+# Initialize DVC repository
+RUN dvc init
+
+# Run dvc repro when the container launches
 CMD ["dvc", "repro"]

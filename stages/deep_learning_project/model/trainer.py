@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional
 from scipy.stats import ks_2samp
 from bayes_opt import BayesianOptimization
+from sklearn.model_selection import StratifiedKFold
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
@@ -49,13 +50,24 @@ class Learner(BaseLearner):
         self.config = config
         self.input_shape = self.X_train.shape[1:]
         self.num_classes = self.config.modelling.num_classes
-        self.api_key = os.getenv('WANDB_API_KEY')
+        #self.api_key = os.getenv('WANDB_API_KEY')
         self.optimizer = import_name(self.config.modelling.optimizer.module,
                                      self.config.modelling.optimizer.name)
     
     
-    @staticmethod
-    def augment_data(images: np.ndarray, num_augmentations: Optional[int] =1):
+    def augment_data_generator(self, images: np.ndarray, num_augmentations: Optional[int] = 1):
+        datagen = ImageDataGenerator(
+            horizontal_flip=True,
+            rotation_range=self.config.modelling.rotation_range
+        )
+
+        for img in images:
+            yield img  # Yield original image
+            for _ in range(num_augmentations):
+                # Yield augmented images on-the-fly
+                yield datagen.random_transform(img)
+    
+    def augment_data(self, images: np.ndarray, num_augmentations: Optional[int] =1):
         # Define Keras transformations for data augmentation
         datagen = ImageDataGenerator(
             horizontal_flip=True,
@@ -120,22 +132,20 @@ class Learner(BaseLearner):
         self.setup_tensorflow()
 
         # Wandb init
-        if not self.api_key:
-            logging.error("W&B API key not found. Set the WANDB_API_KEY environment variable.", extra={"api_key": self.api_key})
-            raise ValueError("W&B API key not found. Set the WANDB_API_KEY environment variable.")
-        os.environ['WANDB_API_KEY'] = self.api_key
+        # if not self.api_key:
+        #     logging.error("W&B API key not found. Set the WANDB_API_KEY environment variable.", extra={"api_key": self.api_key})
+        #     raise ValueError("W&B API key not found. Set the WANDB_API_KEY environment variable.")
+        #os.environ['WANDB_API_KEY'] = self.api_key
         run = wandb.init(
             project=self.config.modelling.wandb_config.project_name,
-            reinit=True,
             config={
-                'learning_rate': learning_rate
-                'dropout': dropout
-                'batch_size': batch_size
-                'optimizer': str(self.optimizer)
+                'learning_rate': learning_rate,
+                'dropout': dropout,
+                'batch_size': batch_size,
+                'optimizer': str(self.optimizer),
                 'epochs': epochs
             },
-            save_code=False,
-            entity=self.config.modelling.wandb_config.entity_name,
+            save_code=True,
             tags=self.config.modelling.wandb_config.tags
         )
 
@@ -156,14 +166,17 @@ class Learner(BaseLearner):
             X_train_fold, y_train_fold = self.X_train[train_split], self.y_train[train_split]
             X_val_fold, y_val_fold = self.X_train[val_split], self.y_train[val_split]
 
-            X_train_fold_augmented = augment_data(X_train_fold, num_augmentations=self.config.modelling.num_augmentations)
-            y_train_fold_augmented = np.repeat(y_train_fold, self.config.modelling.num_augmentations + 1)
-            
+            # X_train_fold_augmented = self.augment_data(X_train_fold, num_augmentations=self.config.modelling.num_augmentations)
+            # y_train_fold_augmented = np.repeat(y_train_fold, self.config.modelling.num_augmentations + 1)
+            train_generator = self.augment_data_generator(X_train_fold, num_augmentations=self.config.modelling.num_augmentations)
+            val_generator = self.augment_data_generator(X_val_fold, num_augmentations=self.config.modelling.num_augmentations)
+            logging.info("Generator finished", extra={"fold_number": fold_number})
             model = self.base_trainer(self.input_shape, self.num_classes, dropout, learning_rate)
             history = model.fit(
-                X_train_fold, 
-                y_train_fold,
-                validation_split=0.2, 
+                train_generator, 
+                steps_per_epoch=len(X_train_fold) // batch_size,
+                validation_data=val_generator,
+                validation_steps=len(X_val_fold) // batch_size,
                 batch_size=batch_size, 
                 epochs=epochs,
                 callbacks=[wandb.keras.WandbCallback()]
@@ -209,9 +222,9 @@ class Learner(BaseLearner):
         
         # Calculate metrics.
         general_metrics = {
-            'roc_auc_train': roc_auc_score(self.y_train, model.predict(self.X_train))
-            'roc_auc_test': roc_auc_score(self.y_test, model.predict(self.X_test))
-            'ks_test': ks_2samp(y_pred_proba_train_fold[y_train_fold == 0], y_pred_proba_train_fold[y_train_fold == 1]).statistic
+            'roc_auc_train': roc_auc_score(self.y_train, model.predict(self.X_train)),
+            'roc_auc_test': roc_auc_score(self.y_test, model.predict(self.X_test)),
+            'ks_test': ks_2samp(y_pred_proba_train_fold[y_train_fold == 0], y_pred_proba_train_fold[y_train_fold == 1]).statistic,
             'ks_train': ks_2samp(y_pred_proba_val_fold[y_val_fold == 0], y_pred_proba_val_fold[y_val_fold == 1]).statistic
         }
         

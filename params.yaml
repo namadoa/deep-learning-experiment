@@ -4,36 +4,36 @@ hydra:
     
 data:
     syndrome_data:
-        dataset: '/modelling/data/raw_data/syndrome_data'
+        dataset: '/workspaces/deep-learning-experiment/data/raw_data/syndrome_data'
     non_syndrome_data:
-        dataset: '/modelling/data/raw_data/non_syndrome_data'                         
+        dataset: '/workspaces/deep-learning-experiment/data/raw_data/non_syndrome_data'                         
                          
 staging:
     syndrome_data:
-        dataset: '/modelling/data/processed_data/syndrome_data/syndrome_data.h5'
+        dataset: '/workspaces/deep-learning-experiment/data/processed_data/syndrome_data/syndrome_data.h5'
     non_syndrome_data:
-        dataset: '/modelling/data/processed_data/non_syndrome_data/non_syndrome_data.h5'
+        dataset: '/workspaces/deep-learning-experiment/data/processed_data/non_syndrome_data/non_syndrome_data.h5'
                     
 splitting_data:
     shuffle: True
     test_size: 0.2
     training_data:
-        dataset: '/modelling/data/modelling_data/training_dataset.h5'
+        dataset: '/workspaces/deep-learning-experiment/data/modelling_data/training_dataset.h5'
     testing_data:
-        dataset: '/modelling/data/modelling_data/testing_data.h5'
+        dataset: '/workspaces/deep-learning-experiment/data/modelling_data/testing_data.h5'
     
 
 modelling:
     architecture: "AlexNet"
     wandb_config:
-        entity_name: deep_learning
+        entity_name: deep_learning_experiment
         project_name: deep_learning_experiment
         tags: [deep_learning_experiment_alexnet_adam]
         parameters:
             learning_rate: [0.00001, 0.01]
             dropout: [0.0, 0.5]
-            batch_size: [32, 64, 128, 256]
-            epochs: [10, 20, 30, 40, 50]
+            batch_size: [50, 256]
+            epochs: [10, 20]
     optimizer:
         module: keras.optimizers
         name: Adam
@@ -47,4 +47,4 @@ modelling:
     rotation_range: 15
     num_augmentations: 3
     random_state: 42
-    models_dir: /modelling/models/NN/
+    models_dir: /deep-learning-experiment/models/NN/

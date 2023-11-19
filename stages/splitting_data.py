@@ -1,8 +1,11 @@
 import hydra
+import numpy as np
+import logging
+
 from hydra.core.config_store import ConfigStore
-from geo_project.config import Config
-from geo_project.data import ParquetDataLoader
-from geo_project.model.train_val_split import RandomStratifiedSplit
+from sklearn.model_selection import train_test_split
+from deep_learning_project.config import Config
+from deep_learning_project.utils.h5_data_utils import load_data_from_h5_in_batches, save_to_h5
 
 cs = ConfigStore.instance()
 cs.store(name="config", node=Config)
@@ -16,25 +19,39 @@ def split_data(cfg: Config) -> None:
         cfg (Config): project configuration
     """
 
-    # Loading processed dataset.
-    syndrome_images, syndrome_labels = load_data_from_h5(cfg.staging.syndrome_data.dataset)
-    non_syndrome_images, non_syndrome_labels = load_data_from_h5(cfg.staging.non_syndrome_data.dataset)
+    # Initialize empty lists for images and labels
+    syndrome_images, syndrome_labels = [], []
+    non_syndrome_images, non_syndrome_labels = [], []
 
-    # Concatenate the data arrays and create labels (0 for non-syndrome, 1 for syndrome)
-    X = np.concatenate([non_syndrome_images, syndrome_images], axis=0)
-    y = np.concatenate([non_syndrome_labels, syndrome_labels])
-    
+    # Load and append syndrome data in batches
+    for img_batch, lbl_batch in load_data_from_h5_in_batches(cfg.staging.syndrome_data.dataset, 10):
+        syndrome_images.append(img_batch)
+        syndrome_labels.append(lbl_batch)
+
+    # Load and append non-syndrome data in batches
+    for img_batch, lbl_batch in load_data_from_h5_in_batches(cfg.staging.non_syndrome_data.dataset, 10):
+        non_syndrome_images.append(img_batch)
+        non_syndrome_labels.append(lbl_batch)
+
+    # Concatenate the data arrays
+    X = np.concatenate(syndrome_images + non_syndrome_images, axis=0)
+    y = np.concatenate(syndrome_labels + non_syndrome_labels)
+
+    logging.info("Dataset concatenated successfully")
+
     # Splitting image dataset into train/test
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=cfg.splitting_data.test_size, 
-        stratify=y, random_state=cfg.modelling.random_state,
-        shuffle=cfg.splitting_data.shuffle
+        random_state=42,
     )
+
+    logging.info("Splitting image dataset into train/test")
 
     # Saving train/test image dataset
     save_to_h5(X_train, y_train, cfg.splitting_data.training_data.dataset)
     save_to_h5(X_test, y_test, cfg.splitting_data.testing_data.dataset)
 
+    logging.info("Dataset split and correctly saved in H5 format")
 
 if __name__ == "__main__":
     split_data()

@@ -7,9 +7,6 @@ stages:
     deps:
       - ${data.syndrome_data.dataset}
       - ${data.non_syndrome_data.dataset}
-    outs:
-      - ${staging.syndrome_data.dataset}
-      - ${staging.non_syndrome_data.dataset} 
 
   splitting_data:
     cmd: python stages/splitting_data.py
@@ -19,9 +16,6 @@ stages:
     deps:
       - ${staging.syndrome_data.dataset}
       - ${staging.non_syndrome_data.dataset}
-    outs:
-      - ${splitting_data.training_data.dataset}
-      - ${splitting_data.testing_data.dataset}
 
   training:
     cmd: python stages/experimentation.py

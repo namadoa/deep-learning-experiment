@@ -79,7 +79,7 @@ class TrainConfig:
         project_config: Weights and Bias configuration project
         models_dir: Directory to track genereated models.
     """
-
+    architecture: str
     wandb_config: WandBConfig
     static_parameters: StaticParametersConfig
     optimizer: ModuleConfig

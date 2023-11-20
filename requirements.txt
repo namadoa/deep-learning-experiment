@@ -8,3 +8,4 @@ bayesian-optimization
 flake8>=4.0.1,<5.0.0
 opencv-python-headless
 dvc
+pillow

@@ -279,8 +279,8 @@ class Learner(BaseLearner):
             # Calculate metrics for the current fold
             fold_metrics_dict['roc_auc_train'].append(roc_auc_score(y_train_fold, model.predict(X_train_fold)))
             fold_metrics_dict['roc_auc_val'].append(roc_auc_score(y_val_fold, model.predict(X_val_fold)))
-            fold_metrics_dict['ks_stat_train'].append(ks_2samp(y_pred_proba_train_fold[y_train_fold_augmented == 0], y_pred_proba_train_fold[y_train_fold_augmented == 1]).statistic)
-            fold_metrics_dict['ks_stat_val'].append(ks_2samp(y_pred_proba_val_fold[y_val_fold == 0], y_pred_proba_val_fold[y_val_fold == 1]).statistic)
+            fold_metrics_dict['ks_stat_train'].append(ks_2samp(y_pred_proba_train_fold, y_train_fold).statistic)
+            fold_metrics_dict['ks_stat_val'].append(ks_2samp(y_pred_proba_val_fold, y_val_fold).statistic)
             fold_metrics_dict['average_precision_train'].append(skm.average_precision_score(y_train_fold_augmented, y_pred_proba_train_fold))
             fold_metrics_dict['average_precision_val'].append(skm.average_precision_score(y_val_fold, y_pred_proba_val_fold))
             fold_metrics_dict['train_loss'].append(history.history['loss'][-1])
@@ -293,7 +293,7 @@ class Learner(BaseLearner):
             for i, (image, prediction) in enumerate(zip(sample_images, sample_predictions)):
                 image_pil = Image.fromarray((image * 255).astype(np.uint8))
                 image_filename = f'prediction_image_fold_{fold_number}_sample_{i}.png'
-                wandb.log({f"prediction_image_{i}": wandb.Image(image_pil, caption=f"Prediction: {prediction}", filename=image_filename)}, step=fold_number)
+                wandb.log({f"prediction_image_{i}": wandb.Image(image_pil, caption=f"Prediction: {prediction}")}, step=fold_number)
             
             fold_number += 1
         
@@ -329,8 +329,8 @@ class Learner(BaseLearner):
         general_metrics = {
             'roc_auc_train': roc_auc_score(self.y_train, model.predict(self.X_train)),
             'roc_auc_test': roc_auc_score(self.y_test, model.predict(self.X_test)),
-            'ks_test': ks_2samp(y_pred_proba_train[self.y_train == 0], y_pred_proba_train[self.y_train == 1]).statistic,
-            'ks_train': ks_2samp(y_pred_proba_test[self.y_test == 0], y_pred_proba_test[self.y_test == 1]).statistic,
+            'ks_test': ks_2samp(y_pred_proba_train, self.y_train).statistic,
+            'ks_train': ks_2samp(y_pred_proba_test, self.y_test).statistic,
             'average_precision_train': skm.average_precision_score(self.y_train, y_pred_proba_train),
             'average_precision_test': skm.average_precision_score(self.y_test, y_pred_proba_test)
         }
@@ -345,7 +345,7 @@ class Learner(BaseLearner):
 
         run.finish()
 
-        return np.mean(average_metrics['ks_stat_val'])
+        return average_metrics['average_roc_auc_val']
 
     def initialize_train(self):
         """

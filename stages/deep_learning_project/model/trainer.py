@@ -92,8 +92,13 @@ class Learner(BaseLearner):
 
         return augmented_images
     
-    def setup_tensorflow(self):
-        os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
+    def setup_tensorflow(self, tpu_address: str) -> None:
+        resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu=tpu_address)
+        tf.config.experimental_connect_to_cluster(resolver)
+        tf.tpu.experimental.initialize_tpu_system(resolver)
+        tf.config.experimental_run_functions_eagerly(True)  # Enable eager execution
+
+        #os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
         random.seed(self.config.modelling.random_state)
         np.random.seed(self.config.modelling.random_state)
         tf.random.set_seed(self.config.modelling.random_state)
@@ -219,7 +224,7 @@ class Learner(BaseLearner):
             float: The mean of the ks_stat_val metric calculated during cross-validation.
         """
         # Setting up TensorFlow and random seed for reproducibility
-        self.setup_tensorflow()
+        self.setup_tensorflow('')
         run = wandb.init(
             project=self.config.modelling.wandb_config.project_name,
             config={

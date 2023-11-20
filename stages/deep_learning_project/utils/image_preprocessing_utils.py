@@ -7,7 +7,7 @@ import logging
 from typing import Optional, Tuple, List
 from deep_learning_project.errors import ResizeImageError
 
-def load_images_from_folder(folder: str, target_size: Optional[Tuple[int, int]] = (224, 224)) -> List[np.ndarray]:
+def load_images_from_folder(folder: str, target_size: Optional[Tuple[int, int]] = (512, 512)) -> List[np.ndarray]:
     """Load images from a specific folder and resize them.
 
     Args:

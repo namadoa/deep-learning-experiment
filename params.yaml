@@ -4,23 +4,23 @@ hydra:
     
 data:
     syndrome_data:
-        dataset: '/workspaces/deep-learning-experiment/data/raw_data/syndrome_data'
+        dataset: '/content/deep-learning-experiment/data/raw_data/syndrome_data'
     non_syndrome_data:
-        dataset: '/workspaces/deep-learning-experiment/data/raw_data/non_syndrome_data'                         
+        dataset: '/content/deep-learning-experiment/data/raw_data/non_syndrome_data'                         
                          
 staging:
     syndrome_data:
-        dataset: '/workspaces/deep-learning-experiment/data/processed_data/syndrome_data/syndrome_data.h5'
+        dataset: '/content/deep-learning-experiment/data/processed_data/syndrome_data/syndrome_data.h5'
     non_syndrome_data:
-        dataset: '/workspaces/deep-learning-experiment/data/processed_data/non_syndrome_data/non_syndrome_data.h5'
+        dataset: '/content/deep-learning-experiment/data/processed_data/non_syndrome_data/non_syndrome_data.h5'
                     
 splitting_data:
     shuffle: True
     test_size: 0.2
     training_data:
-        dataset: '/workspaces/deep-learning-experiment/data/modelling_data/training_dataset.h5'
+        dataset: '/content/deep-learning-experiment/data/modelling_data/training_dataset.h5'
     testing_data:
-        dataset: '/workspaces/deep-learning-experiment/data/modelling_data/testing_data.h5'
+        dataset: '/content/deep-learning-experiment/data/modelling_data/testing_data.h5'
     
 
 modelling:
@@ -47,4 +47,4 @@ modelling:
     rotation_range: 15
     num_augmentations: 3
     random_state: 42
-    models_dir: /deep-learning-experiment/models/NN/
+    models_dir: /content/deep-learning-experiment/models/NN/

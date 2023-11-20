@@ -1,5 +1,5 @@
 statsmodels>=0.13.2,<0.14.0
-scikit-learn>=0.0,<1.0.0
+scikit-learn
 wandb>=0.12.16,<0.13.0
 tensorflow>=2.9.1,<3.0.0
 keras>=2.9.0,<3.0.0

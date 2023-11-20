@@ -15,9 +15,10 @@ from scipy.stats import ks_2samp
 from bayes_opt import BayesianOptimization
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import roc_auc_score
+from tensorflow.keras.applications import ResNet50
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, GlobalAveragePooling2D
 from deep_learning_project.config import Config
 from deep_learning_project.utils.tools import import_name
 
@@ -54,6 +55,17 @@ class Learner(BaseLearner):
                                      self.config.modelling.optimizer.name)
     
     def augment_data(self, images: np.ndarray, num_augmentations: Optional[int] =1):
+        """
+        Augments the given images by applying Keras transformations for data augmentation.
+
+        Parameters:
+            images (np.ndarray): An array of images to be augmented.
+            num_augmentations (Optional[int]): The number of augmentations to apply to each image. Defaults to 1.
+
+        Returns:
+            np.ndarray: An array of augmented images.
+        """
+
         # Define Keras transformations for data augmentation
         datagen = ImageDataGenerator(
             horizontal_flip=True,
@@ -98,6 +110,8 @@ class Learner(BaseLearner):
 
         if architecture == 'AlexNet':
             model = self._build_alexnet(input_shape, dropout)
+        elif architecture == 'ResNet50':
+            model = self._build_resnet50(input_shape, dropout)
         elif architecture == 'MobileNet':
             base_model = tf.keras.applications.MobileNetV2(input_shape=input_shape, include_top=False, weights=None)
             model = tf.keras.Sequential([base_model, tf.keras.layers.Flatten()])
@@ -118,6 +132,32 @@ class Learner(BaseLearner):
             loss='binary_crossentropy', 
             metrics=['accuracy', keras.metrics.AUC(curve='ROC', name='roc_auc')]
         )
+        return model
+
+    def _build_resnet50(self, input_shape: Tuple[int, int, int], dropout: float) -> Sequential:
+        """
+        Builds a ResNet50 model with the given input shape, number of classes, dropout rate, and learning rate.
+
+        Parameters:
+            input_shape: The shape of the input data.
+            num_classes: The number of classes for classification.
+            dropout: The dropout rate.
+            learning_rate: The learning rate for the optimizer.
+
+        Returns:
+            The compiled ResNet50 model.
+        """
+        model = ResNet50(weights='imagenet', include_top=False, input_shape=input_shape)
+        model = Sequential(
+            [
+                model,
+                GlobalAveragePooling2D(),
+                Dense(512, activation='relu'),
+                Dropout(dropout),
+                Dense(self.num_classes, activation='sigmoid')
+            ]
+        )
+
         return model
     
     def _build_alexnet(
@@ -165,6 +205,18 @@ class Learner(BaseLearner):
             batch_size: int = 100,
             epochs: int = 10,
     ):
+        """
+        Trains and evaluates the model using cross-validation and the full dataset.
+
+        Args:
+            learning_rate (float): The learning rate for the optimizer (default: 1e-4).
+            dropout (float): The dropout rate for regularization (default: 0.2).
+            batch_size (int): The batch size for training (default: 100).
+            epochs (int): The number of epochs for training (default: 10).
+
+        Returns:
+            float: The mean of the ks_stat_val metric calculated during cross-validation.
+        """
         # Setting up TensorFlow and random seed for reproducibility
         self.setup_tensorflow()
         run = wandb.init(
@@ -197,9 +249,18 @@ class Learner(BaseLearner):
             X_train_fold, y_train_fold = self.X_train[train_split], self.y_train[train_split]
             X_val_fold, y_val_fold = self.X_train[val_split], self.y_train[val_split]
 
+            # Display the number of elements for each class before and after augmentation
+            logging.info(f"Number of elements for class 0 before augmentation: {np.sum(y_train_fold == 0)}")
+            logging.info(f"Number of elements for class 1 before augmentation: {np.sum(y_train_fold == 1)}")
+
             X_train_fold_augmented = self.augment_data(X_train_fold, num_augmentations=self.config.modelling.num_augmentations)
             y_train_fold_augmented = np.repeat(y_train_fold, self.config.modelling.num_augmentations + 1)
             logging.info("Augmentation data process finished", extra={"fold_number": fold_number})
+
+            # Display the number of elements for each class after augmentation
+            logging.info(f"Number of elements for class 0 after augmentation: {np.sum(y_train_fold_augmented == 0)}")
+            logging.info(f"Number of elements for class 1 after augmentation: {np.sum(y_train_fold_augmented == 1)}")
+            
             model = self.base_trainer(dropout, learning_rate)
             history = model.fit(
                 X_train_fold_augmented,
@@ -280,6 +341,11 @@ class Learner(BaseLearner):
         return np.mean(average_metrics['ks_stat_val'])
 
     def initialize_train(self):
+        """
+        Initializes the training process by creating a BayesianOptimization object and maximizing it.
+
+        :return: None
+        """
         optimizer = BayesianOptimization(
             f=self.train_evaluate,
             pbounds=self.config.modelling.wandb_config.parameters,

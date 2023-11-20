@@ -24,7 +24,7 @@ splitting_data:
     
 
 modelling:
-    architecture: "AlexNet"
+    architecture: "ResNet50"
     wandb_config:
         entity_name: deep_learning_experiment
         project_name: deep_learning_experiment
@@ -32,7 +32,7 @@ modelling:
         parameters:
             learning_rate: [0.00001, 0.01]
             dropout: [0.0, 0.5]
-            batch_size: [50, 256]
+            batch_size: [128, 256]
             epochs: [10, 20]
     optimizer:
         module: keras.optimizers

@@ -363,6 +363,9 @@ class Learner(BaseLearner):
         os.makedirs(model_path, exist_ok=True)
         model.save(os.path.join(model_path, 'model'))
 
+        # Saving the model on W&B
+        wandb.save(os.path.join(model_path, 'model'))
+
         run.finish()
 
         return average_metrics['average_roc_auc_val']

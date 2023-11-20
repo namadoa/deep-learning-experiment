@@ -294,6 +294,26 @@ class Learner(BaseLearner):
                 image_pil = Image.fromarray((image * 255).astype(np.uint8))
                 image_filename = f'prediction_image_fold_{fold_number}_sample_{i}.png'
                 wandb.log({f"prediction_image_{i}": wandb.Image(image_pil, caption=f"Prediction: {prediction}")}, step=fold_number)
+
+            # Select samples with and without the syndrome for inference
+            samples_syndrome = X_val_fold[y_val_fold == 1][:5]
+            samples_no_syndrome = X_val_fold[y_val_fold == 0][:5]
+
+            # Make predictions for both sets of samples
+            predictions_syndrome = model.predict(samples_syndrome)
+            predictions_no_syndrome = model.predict(samples_no_syndrome)
+
+            # Log predictions for samples with the syndrome
+            for i, (image, prediction) in enumerate(zip(samples_syndrome, predictions_syndrome)):
+                image_pil = Image.fromarray((image * 255).astype(np.uint8))
+                image_filename = f'prediction_image_fold_{fold_number}_syndrome_sample_{i}.png'
+                wandb.log({image_filename: wandb.Image(image_pil, caption=f"Prediction: {prediction}")}, step=fold_number)
+
+            # Log predictions for samples without the syndrome
+            for i, (image, prediction) in enumerate(zip(samples_no_syndrome, predictions_no_syndrome)):
+                image_pil = Image.fromarray((image * 255).astype(np.uint8))
+                image_filename = f'prediction_image_fold_{fold_number}_no_syndrome_sample_{i}.png'
+                wandb.log({image_filename: wandb.Image(image_pil, caption=f"Prediction: {prediction}")}, step=fold_number)
             
             fold_number += 1
         

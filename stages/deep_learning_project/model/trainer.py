@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 from scipy.stats import ks_2samp
 from bayes_opt import BayesianOptimization
+from PIL import Image
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import roc_auc_score
 from tensorflow.keras.applications import ResNet50
@@ -265,7 +266,6 @@ class Learner(BaseLearner):
             history = model.fit(
                 X_train_fold_augmented,
                 y_train_fold_augmented,
-                steps_per_epoch=len(X_train_fold_augmented) // batch_size,
                 validation_split=0.2,
                 batch_size=int(batch_size), 
                 epochs=int(epochs),
@@ -287,6 +287,13 @@ class Learner(BaseLearner):
             fold_metrics_dict['val_loss'].append(history.history['val_loss'][-1])
             fold_metrics_dict['train_accuracy'].append(history.history['accuracy'][-1])
             fold_metrics_dict['val_accuracy'].append(history.history['val_accuracy'][-1])
+
+            sample_images = X_val_fold[:5]
+            sample_predictions = model.predict(sample_images)
+            for i, (image, prediction) in enumerate(zip(sample_images, sample_predictions)):
+                image_pil = Image.fromarray((image * 255).astype(np.uint8))
+                image_filename = f'prediction_image_fold_{fold_number}_sample_{i}.png'
+                wandb.log({f"prediction_image_{i}": wandb.Image(image_pil, caption=f"Prediction: {prediction}", filename=image_filename)}, step=fold_number)
             
             fold_number += 1
         
@@ -301,8 +308,8 @@ class Learner(BaseLearner):
             self.X_train, 
             self.y_train, 
             validation_split=0.2, 
-            batch_size=batch_size, 
-            epochs=epochs,
+            batch_size=int(batch_size), 
+            epochs=int(epochs),
             callbacks=[wandb.keras.WandbCallback()]
         )
 
